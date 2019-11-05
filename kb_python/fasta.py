@@ -390,7 +390,7 @@ def generate_intron_fasta(fasta_path, gtf_path, out_path, flank=30):
                         )
                         f.write(
                             '{}\n'.format(
-                                intron if dict(attributes)['strand'] ==
+                                intron if attributes_dict['strand'] ==
                                 '+' else FASTA.reverse_complement(intron)
                             )
                         )
@@ -408,7 +408,7 @@ def generate_intron_fasta(fasta_path, gtf_path, out_path, flank=30):
                     )
                     f.write(
                         '{}\n'.format(
-                            intron if dict(attributes)['strand'] ==
+                            intron if attributes_dict['strand'] ==
                             '+' else FASTA.reverse_complement(intron)
                         )
                     )
@@ -417,7 +417,7 @@ def generate_intron_fasta(fasta_path, gtf_path, out_path, flank=30):
     return out_path
 
 
-def generate_spliced_fasta(fasta_path, gtf_path, out_path):
+def generate_spliced_fasta(fasta_path, gtf_path, out_path, k=31):
     """Generate a spliced FASTA using the genome and GTF.
 
     This function assumes the order in which the chromosomes appear in the
@@ -437,16 +437,135 @@ def generate_spliced_fasta(fasta_path, gtf_path, out_path):
     :return: path to generated spliced FASTA
     :rtype: str
     """
-    pass
+    fasta = FASTA(fasta_path)
+    gtf = GTF(gtf_path)
+    gtf_entries = gtf.entries()
+
+    with open_as_text(out_path, 'w') as f:
+        previous_gtf_entry = None
+        for info, sequence in fasta.entries():
+            sequence_id = info['sequence_id']
+            logger.debug(
+                'Generating spliced transcripts from chromosome {}'.
+                format(sequence_id)
+            )
+
+            transcript_exons = {}
+            transcript_infos = {}
+            while True:
+                try:
+                    gtf_entry = previous_gtf_entry if previous_gtf_entry else next(
+                        gtf_entries
+                    )
+                except StopIteration:
+                    break
+                previous_gtf_entry = None
+                chromosome = gtf_entry['seqname']
+
+                if sequence_id != chromosome:
+                    previous_gtf_entry = gtf_entry
+                    break
+
+                start = gtf_entry['start']
+                end = gtf_entry['end']
+                strand = gtf_entry['strand']
+                if gtf_entry['feature'] == 'exon':
+                    transcript_id = gtf_entry['group']['transcript_id']
+                    transcript_version = gtf_entry['group'].get(
+                        'transcript_version', None
+                    )
+                    transcript = '{}.{}'.format(
+                        transcript_id, transcript_version
+                    ) if transcript_version else transcript_id
+
+                    transcript_exons.setdefault(transcript,
+                                                []).append((start, end))
+                elif gtf_entry['feature'] == 'transcript':
+                    transcript_id = gtf_entry['group']['transcript_id']
+                    transcript_version = gtf_entry['group'].get(
+                        'transcript_version', None
+                    )
+                    transcript = '{}.{}'.format(
+                        transcript_id, transcript_version
+                    ) if transcript_version else transcript_id
+
+                    gene_id = gtf_entry['group']['gene_id']
+                    gene_version = gtf_entry['group'].get('gene_version', None)
+                    gene = '{}.{}'.format(
+                        gene_id, gene_version
+                    ) if gene_version else gene_id
+                    gene_name = gtf_entry['group'].get('gene_name', '')
+
+                    if transcript not in transcript_infos:
+                        attributes = [
+                            ('gene_id', gene),
+                            ('gene_name', gene_name),
+                            ('chr', chromosome),
+                            ('start', start),
+                            ('end', end),
+                            ('strand', strand),
+                        ]
+                        transcript_infos[transcript] = attributes
+
+            for transcript in sorted(transcript_exons.keys()):
+                attributes = transcript_infos[transcript]
+
+                # Find transcript interval - all exon intervals
+                attributes_dict = dict(attributes)
+                exons = list(sorted(transcript_exons[transcript]))
+                if exons:
+                    index = 1
+                    spliced = ''
+                    for start, end in exons:
+                        if not spliced:
+                            spliced += sequence[max(end - k + 2, start) - 1:end]
+                        elif end - start + 1 <= (k - 1):
+                            spliced += sequence[start - 1:end]
+                        else:
+                            spliced += sequence[start - 1:start + (k - 1) - 1]
+
+                            f.write(
+                                '{}\n'.format(
+                                    FASTA.make_header(
+                                        '{}-S.{}'.format(transcript, index),
+                                        attributes
+                                    )
+                                )
+                            )
+                            f.write(
+                                '{}\n'.format(
+                                    spliced if attributes_dict['strand'] ==
+                                    '+' else FASTA.reverse_complement(spliced)
+                                )
+                            )
+                            index += 1
+                            spliced = sequence[end - k + 1:end]
+                    if len(spliced) > k - 1:
+                        f.write(
+                            '{}\n'.format(
+                                FASTA.make_header(
+                                    '{}-S.{}'.format(transcript, index),
+                                    attributes
+                                )
+                            )
+                        )
+                        f.write(
+                            '{}\n'.format(
+                                spliced if attributes_dict['strand'] ==
+                                '+' else FASTA.reverse_complement(spliced)
+                            )
+                        )
+
+    return out_path
 
 
-def generate_unspliced_fasta(fasta_path, gtf_path, out_path):
+def generate_unspliced_fasta(fasta_path, gtf_path, out_path, k=31):
     """Generate a unspliced FASTA using the genome and GTF.
 
     This function assumes the order in which the chromosomes appear in the
     genome FASTA is identical to the order in which they appear in the GTF.
     Additionally, the GTF must be sorted by start position.
-    The spliced FASTA contains entries of length 2 * (k - 1) for k = 31,
+    The unspliced FASTA contains entries of length 2 * (k - 1) for k = 31,
     centered around exon-intron splice junctions + full introns
     (any overlapping regions are collapsed).
 
@@ -460,4 +579,162 @@ def generate_unspliced_fasta(fasta_path, gtf_path, out_path):
     :return: path to generated unspliced FASTA
     :rtype: str
     """
-    pass
+    fasta = FASTA(fasta_path)
+    gtf = GTF(gtf_path)
+    gtf_entries = gtf.entries()
+
+    with open_as_text(out_path, 'w') as f:
+        previous_gtf_entry = None
+        for info, sequence in fasta.entries():
+            sequence_id = info['sequence_id']
+            logger.debug(
+                'Generating unspliced transcripts from chromosome {}'.
+                format(sequence_id)
+            )
+
+            transcript_exons = {}
+            transcript_infos = {}
+            while True:
+                try:
+                    gtf_entry = previous_gtf_entry if previous_gtf_entry else next(
+                        gtf_entries
+                    )
+                except StopIteration:
+                    break
+                previous_gtf_entry = None
+                chromosome = gtf_entry['seqname']
+
+                if sequence_id != chromosome:
+                    previous_gtf_entry = gtf_entry
+                    break
+
+                start = gtf_entry['start']
+                end = gtf_entry['end']
+                strand = gtf_entry['strand']
+                if gtf_entry['feature'] == 'exon':
+                    transcript_id = gtf_entry['group']['transcript_id']
+                    transcript_version = gtf_entry['group'].get(
+                        'transcript_version', None
+                    )
+                    transcript = '{}.{}'.format(
+                        transcript_id, transcript_version
+                    ) if transcript_version else transcript_id
+
+                    transcript_exons.setdefault(transcript,
+                                                []).append((start, end))
+                elif gtf_entry['feature'] == 'transcript':
+                    transcript_id = gtf_entry['group']['transcript_id']
+                    transcript_version = gtf_entry['group'].get(
+                        'transcript_version', None
+                    )
+                    transcript = '{}.{}'.format(
+                        transcript_id, transcript_version
+                    ) if transcript_version else transcript_id
+
+                    gene_id = gtf_entry['group']['gene_id']
+                    gene_version = gtf_entry['group'].get('gene_version', None)
+                    gene = '{}.{}'.format(
+                        gene_id, gene_version
+                    ) if gene_version else gene_id
+                    gene_name = gtf_entry['group'].get('gene_name', '')
+
+                    if transcript not in transcript_infos:
+                        attributes = [
+                            ('gene_id', gene),
+                            ('gene_name', gene_name),
+                            ('chr', chromosome),
+                            ('start', start),
+                            ('end', end),
+                            ('strand', strand),
+                        ]
+                        transcript_infos[transcript] = attributes
+
+            for transcript in sorted(transcript_exons.keys()):
+                attributes = transcript_infos[transcript]
+
+                # Find transcript interval - all exon intervals
+                attributes_dict = dict(attributes)
+                transcript_interval = (
+                    attributes_dict['start'], attributes_dict['end']
+                )
+                exons = list(sorted(transcript_exons[transcript]))
+                if exons:
+                    index = 1
+                    last_end = None
+                    short_intron = False
+                    unspliced = ''
+                    for start, end in exons:
+                        if not last_end or short_intron:
+                            unspliced += sequence[
+                                max(transcript_interval[0], start - k + 1) -
+                                1:start - 1]
+                            short_intron = False
+                        elif start - last_end - 1 <= k - 1:
+                            unspliced += sequence[last_end:start - 1]
+                        else:
+                            unspliced += sequence[last_end:last_end + (k - 1)]
+
+                            f.write(
+                                '{}\n'.format(
+                                    FASTA.make_header(
+                                        '{}-U.{}'.format(transcript, index),
+                                        attributes
+                                    )
+                                )
+                            )
+                            f.write(
+                                '{}\n'.format(
+                                    unspliced if attributes_dict['strand'] ==
+                                    '+' else FASTA.
+                                    reverse_complement(unspliced)
+                                )
+                            )
+                            index += 1
+                            unspliced = sequence[start - k:start - 1]
+                            short_intron = True
+
+                        if end - start + 1 <= (k - 1):
+                            unspliced += sequence[start - 1:end]
+                        else:
+                            unspliced += sequence[start - 1:start + (k - 1) - 1]
+                            f.write(
+                                '{}\n'.format(
+                                    FASTA.make_header(
+                                        '{}-U.{}'.format(transcript, index),
+                                        attributes
+                                    )
+                                )
+                            )
+                            f.write(
+                                '{}\n'.format(
+                                    unspliced if attributes_dict['strand'] ==
+                                    '+' else FASTA.
+                                    reverse_complement(unspliced)
+                                )
+                            )
+                            index += 1
+                            unspliced = sequence[end - k + 1:end]
+                        last_end = end
+
+                    if unspliced:
+                        unspliced += sequence[last_end:min(
+                            last_end + (k - 1), transcript_interval[1]
+                        )]
+
+                    if len(unspliced) > k - 1:
+                        f.write(
+                            '{}\n'.format(
+                                FASTA.make_header(
+                                    '{}-U.{}'.format(transcript, index),
+                                    attributes
+                                )
+                            )
+                        )
+                        f.write(
+                            '{}\n'.format(
+                                unspliced if attributes_dict['strand'] ==
+                                '+' else FASTA.reverse_complement(unspliced)
+                            )
+                        )
+
+    return out_path

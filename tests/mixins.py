@@ -95,3 +95,10 @@ class TestMixin(TestCase):
         cls.split_intron_fasta_path = os.path.join(
             cls.fasta_dir, 'intron_split.fa'
         )
+
+        cls.velocity_fasta_path = os.path.join(cls.fasta_dir, 'velocity.fa')
+        cls.velocity_gtf_path = os.path.join(cls.gtf_dir, 'velocity.gtf')
+        cls.spliced_fasta_path = os.path.join(cls.fasta_dir, 'spliced_split.fa')
+        cls.unspliced_fasta_path = os.path.join(
+            cls.fasta_dir, 'unspliced_split.fa'
+        )

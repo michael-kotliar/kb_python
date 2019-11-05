@@ -74,14 +74,26 @@ class TestFASTA(TestMixin, TestCase):
         out_path = os.path.join(
             tempfile.gettempdir(), '{}.fa'.format(uuid.uuid4())
         )
-        fasta.generate_spliced_fasta(
-            self.sorted_fasta_path, self.sorted_gtf_path, out_path
+        self.assertEqual(
+            out_path,
+            fasta.generate_spliced_fasta(
+                self.velocity_fasta_path, self.velocity_gtf_path, out_path, k=3
+            )
         )
+        with open(self.spliced_fasta_path, 'r') as spliced, open(out_path,
+                                                                 'r') as f:
+            self.assertEqual(spliced.read(), f.read())
 
     def test_generate_unspliced_fasta(self):
         out_path = os.path.join(
             tempfile.gettempdir(), '{}.fa'.format(uuid.uuid4())
         )
-        fasta.generate_unspliced_fasta(
-            self.sorted_fasta_path, self.sorted_gtf_path, out_path
+        self.assertEqual(
+            out_path,
+            fasta.generate_unspliced_fasta(
+                self.velocity_fasta_path, self.velocity_gtf_path, out_path, k=3
+            )
         )
+        with open(self.unspliced_fasta_path, 'r') as unspliced, open(out_path,
+                                                                     'r') as f:
+            print(unspliced.read(), f.read())

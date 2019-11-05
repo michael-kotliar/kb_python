@@ -1,0 +1,7 @@
+1	havana	transcript	1	10	.	+	.	gene_id "GENE_B"; gene_version "1"; transcript_id "TRANSCRIPT_B"; gene_name "GENE_B_NAME"; gene_source "havana"; gene_biotype "TEC"; transcript_name "4933401J01Rik-201"; transcript_source "havana"; transcript_biotype "TEC"; tag "basic"; transcript_support_level "NA";
+1	havana	exon	2	3	.	-	.	gene_id "GENE_C"; gene_name "GENE_C_NAME"; transcript_id "TRANSCRIPT_C", gene_source "havana"; gene_biotype "TEC";
+1	havana	transcript	2	14	.	-	.	gene_id "GENE_C"; gene_name "GENE_C_NAME"; transcript_id "TRANSCRIPT_C"; ; gene_source "havana"; gene_biotype "TEC"; transcript_name "4933401J01Rik-201"; transcript_source "havana"; transcript_biotype "TEC"; tag "basic"; transcript_support_level "NA";
+1	havana	exon	2	2	.	+	.	gene_id "GENE_B"; gene_version "1"; gene_name "GENE_B_NAME"; transcript_id "TRANSCRIPT_B", gene_source "havana"; gene_biotype "TEC";
+1	havana	exon	5	8	.	+	.	gene_id "GENE_B"; gene_version "1"; gene_name "GENE_B_NAME"; transcript_id "TRANSCRIPT_B", gene_source "havana"; gene_biotype "TEC";
+1	havana	exon	5	6	.	-	.	gene_id "GENE_C"; gene_name "GENE_C_NAME"; transcript_id "TRANSCRIPT_C", gene_source "havana"; gene_biotype "TEC";
+1	havana	exon	11	14	.	-	.	gene_id "GENE_C"; gene_name "GENE_C_NAME"; transcript_id "TRANSCRIPT_C", gene_source "havana"; gene_biotype "TEC";
