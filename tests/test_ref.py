@@ -336,7 +336,7 @@ class TestRef(TestMixin, TestCase):
             )
             kallisto_index.assert_called_once_with(cdna_fasta_path, index_path)
 
-    def test_ref_lamanno(self):
+    def test_ref_velocity(self):
         with mock.patch('kb_python.ref.decompress_file') as decompress_file,\
             mock.patch('kb_python.ref.create_t2g_from_fasta') as create_t2g_from_fasta,\
             mock.patch('kb_python.ref.sort_fasta') as sort_fasta,\
@@ -379,7 +379,7 @@ class TestRef(TestMixin, TestCase):
                 'intron_t2c': intron_t2c_path,
                 'index': index_path,
             },
-                             ref.ref_lamanno(
+                             ref.ref_velocity(
                                  self.fasta_path,
                                  self.gtf_path,
                                  cdna_fasta_path,
@@ -417,7 +417,7 @@ class TestRef(TestMixin, TestCase):
             ])
             kallisto_index.assert_called_once_with(combined_path, index_path)
 
-    def test_ref_lamanno_exists(self):
+    def test_ref_velocity_exists(self):
         with mock.patch('kb_python.ref.decompress_file') as decompress_file,\
             mock.patch('kb_python.ref.create_t2g_from_fasta') as create_t2g_from_fasta,\
             mock.patch('kb_python.ref.sort_fasta') as sort_fasta,\
@@ -439,7 +439,7 @@ class TestRef(TestMixin, TestCase):
             kallisto_index.return_value = {'index': index_path}
             create_t2g_from_fasta.return_value = {'t2g': t2g_path}
             self.assertEqual({},
-                             ref.ref_lamanno(
+                             ref.ref_velocity(
                                  self.fasta_path,
                                  self.gtf_path,
                                  cdna_fasta_path,
@@ -460,7 +460,7 @@ class TestRef(TestMixin, TestCase):
             concatenate_files.assert_not_called()
             kallisto_index.assert_not_called()
 
-    def test_ref_lamanno_overwrite(self):
+    def test_ref_velocity_overwrite(self):
         with mock.patch('kb_python.ref.decompress_file') as decompress_file,\
             mock.patch('kb_python.ref.create_t2g_from_fasta') as create_t2g_from_fasta,\
             mock.patch('kb_python.ref.sort_fasta') as sort_fasta,\
@@ -503,7 +503,7 @@ class TestRef(TestMixin, TestCase):
                 'intron_t2c': intron_t2c_path,
                 'index': index_path,
             },
-                             ref.ref_lamanno(
+                             ref.ref_velocity(
                                  self.fasta_path,
                                  self.gtf_path,
                                  cdna_fasta_path,

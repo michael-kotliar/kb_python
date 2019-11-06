@@ -8,8 +8,8 @@ import textwrap
 from . import __version__
 from .config import PACKAGE_PATH, REFERENCES_MAPPING, TECHNOLOGIES, TEMP_DIR
 from .constants import INFO_FILENAME
-from .count import count, count_lamanno
-from .ref import download_reference, ref, ref_lamanno
+from .count import count, count_velocity
+from .ref import download_reference, ref, ref_velocity
 from .utils import get_bustools_version, get_kallisto_version
 
 
@@ -87,8 +87,8 @@ def parse_ref(args):
         }
         reference = REFERENCES_MAPPING[args.d]
         download_reference(reference, files, overwrite=args.overwrite)
-    elif args.lamanno:
-        ref_lamanno(
+    elif args.lamanno or args.velocity:
+        ref_velocity(
             args.fasta,
             args.gtf,
             args.f1,
@@ -97,6 +97,7 @@ def parse_ref(args):
             args.g,
             args.c1,
             args.c2,
+            lamanno=args.lamanno,
             overwrite=args.overwrite
         )
     else:
@@ -116,8 +117,8 @@ def parse_count(args):
     :param args: Command-line arguments dictionary, as parsed by argparse
     :type args: dict
     """
-    if args.lamanno:
-        count_lamanno(
+    if args.lamanno or args.velocity:
+        count_velocity(
             args.i,
             args.g,
             args.c1,
@@ -213,33 +214,45 @@ def setup_ref_args(parser, parent):
     required_ref.add_argument(
         '-f1',
         metavar='FASTA',
-        help=('[Optional with -d] Path to the cDNA FASTA to be generated '),
+        help=(
+            '[Optional with -d] Path to the cDNA FASTA to be generated '
+            '(spliced FASTA for --velocity)'
+        ),
         type=str,
         required='-d' not in sys.argv
     )
-    required_lamanno = parser_ref.add_argument_group(
-        'required arguments for --lamanno'
+    required_velocity = parser_ref.add_argument_group(
+        'required arguments for --lamanno and --velocity'
     )
-    required_lamanno.add_argument(
+    required_velocity.add_argument(
         '-f2',
         metavar='FASTA',
-        help='Path to the intron FASTA to be generated',
+        help=(
+            'Path to the intron FASTA (--lamanno) or '
+            'unspliced FASTA (--velocity) to be generated'
+        ),
         type=str,
-        required='--lamanno' in sys.argv
+        required=any(arg in sys.argv for arg in ('--lamanno', '--velocity'))
     )
-    required_lamanno.add_argument(
+    required_velocity.add_argument(
         '-c1',
         metavar='T2C',
-        help='Path to generate cDNA transcripts-to-capture',
+        help=(
+            'Path to generate cDNA (-lamanno) or '
+            'spliced (--velocity) transcripts-to-capture'
+        ),
         type=str,
-        required='--lamanno' in sys.argv
+        required=any(arg in sys.argv for arg in ('--lamanno', '--velocity'))
     )
-    required_lamanno.add_argument(
+    required_velocity.add_argument(
         '-c2',
         metavar='T2C',
-        help='Path to generate intron transcripts-to-capture',
+        help=(
+            'Path to generate intron (--lamanno) or '
+            'unspliced (--velocity) transcripts-to-capture'
+        ),
         type=str,
-        required='--lamanno' in sys.argv
+        required=any(arg in sys.argv for arg in ('--lamanno', '--velocity'))
     )
 
     parser_ref.add_argument(
@@ -252,12 +265,18 @@ def setup_ref_args(parser, parent):
         choices=list(REFERENCES_MAPPING.keys()),
         required=False
     )
-    parser_ref.add_argument(
+    velocity_group = parser_ref.add_mutually_exclusive_group()
+    velocity_group.add_argument(
         '--lamanno',
         help=(
             'Prepare files for RNA velocity based on '
             'La Manno et al. 2018 logic'
         ),
+        action='store_true'
+    )
+    velocity_group.add_argument(
+        '--velocity',
+        help='Prepare files for RNA velocity',
         action='store_true'
     )
     parser_ref.add_argument(
@@ -356,21 +375,21 @@ def setup_count_args(parser, parent):
         default='4G'
     )
     required_lamanno = parser_count.add_argument_group(
-        'required arguments for --lamanno'
+        'required arguments for --lamanno or --velocity'
     )
     required_lamanno.add_argument(
         '-c1',
         metavar='T2C',
         help='Path to cDNA transcripts-to-capture',
         type=str,
-        required='--lamanno' in sys.argv
+        required=any(arg in sys.argv for arg in ('--lamanno', '--velocity'))
     )
     required_lamanno.add_argument(
         '-c2',
         metavar='T2C',
         help='Path to intron transcripts-to-captured',
         type=str,
-        required='--lamanno' in sys.argv
+        required=any(arg in sys.argv for arg in ('--lamanno', '--velocity'))
     )
     parser_count.add_argument(
         '--overwrite',
@@ -378,13 +397,18 @@ def setup_count_args(parser, parent):
         action='store_true'
     )
 
-    lamanno_filter_group = parser_count.add_mutually_exclusive_group()
-    lamanno_filter_group.add_argument(
+    velocity_filter_group = parser_count.add_mutually_exclusive_group()
+    velocity_filter_group.add_argument(
         '--lamanno',
         help='Calculate RNA velocity based on La Manno et al. 2018 logic',
         action='store_true'
     )
-    lamanno_filter_group.add_argument(
+    velocity_filter_group.add_argument(
+        '--velocity',
+        help='Calculate RNA velocity',
+        action='store_true',
+    )
+    velocity_filter_group.add_argument(
         '--filter',
         help='Produce a filtered gene count matrix (default: bustools)',
         type=str,

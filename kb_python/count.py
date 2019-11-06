@@ -534,7 +534,7 @@ def count(
     return results
 
 
-def count_lamanno(
+def count_velocity(
         index_path,
         t2g_path,
         cdna_t2c_path,

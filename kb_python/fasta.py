@@ -433,6 +433,8 @@ def generate_spliced_fasta(fasta_path, gtf_path, out_path, k=31):
     :type gtf_path: str
     :param out_path: path to spliced FASTA to generate
     :type out_path: str
+    :param k: k-mer length
+    :type k: int
 
     :return: path to generated spliced FASTA
     :rtype: str
@@ -575,6 +577,8 @@ def generate_unspliced_fasta(fasta_path, gtf_path, out_path, k=31):
     :type gtf_path: str
     :param out_path: path to unspliced FASTA to generate
     :type out_path: str
+    :param k: k-mer length
+    :type k: int
 
     :return: path to generated unspliced FASTA
     :rtype: str

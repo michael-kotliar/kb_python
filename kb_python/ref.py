@@ -13,6 +13,8 @@ from .fasta import (
     FASTA,
     generate_cdna_fasta,
     generate_intron_fasta,
+    generate_spliced_fasta,
+    generate_unspliced_fasta,
 )
 from .gtf import GTF
 from .utils import (
@@ -294,15 +296,16 @@ def ref(
     return results
 
 
-def ref_lamanno(
+def ref_velocity(
         fasta_path,
         gtf_path,
-        cdna_path,
-        intron_path,
+        c1_path,
+        c2_path,
         index_path,
         t2g_path,
-        cdna_t2c_path,
-        intron_t2c_path,
+        c1_t2c_path,
+        c2_t2c_path,
+        lamanno=True,
         temp_dir='tmp',
         overwrite=False,
 ):
@@ -312,16 +315,19 @@ def ref_lamanno(
     :type fasta_path: str
     :param gtf_path: path to GTF file
     :type gtf_path: str
-    :param cdna_path: path to generate the cDNA FASTA file
-    :type cdna_path: str
-    :param intron_path: path to generate the intron FASTA file
-    :type intron_path: str
+    :param c1_path: path to generate the cDNA/spliced FASTA file
+    :type c1_path: str
+    :param c2_path: path to generate the intron/unspliced FASTA file
+    :type c2_path: str
     :param t2g_path: path to output transcript-to-gene mapping
     :type t2g_path: str
-    :param cdna_t2c_path: path to generate the cDNA transcripts-to-capture file
-    :type cdna_t2c_path: str
-    :param intron_t2c_path: path to generate the intron transcripts-to-capture file
-    :type intron_t2c_path: str
+    :param c1_t2c_path: path to generate the cDNA/spliced transcripts-to-capture file
+    :type c1_t2c_path: str
+    :param c2_t2c_path: path to generate the intron/unspliced transcripts-to-capture file
+    :type c2_t2c_path: str
+    :param lamanno: whether to generate FASTAs based on La Manno et al. 2018,
+                    defaults to `True`
+    :type lamanno: bool, optional
     :param temp_dir: path to temporary directory, defaults to `tmp`
     :type temp_dir: str, optional
     :param overwrite: overwrite an existing index file, defaults to `False`
@@ -331,6 +337,10 @@ def ref_lamanno(
     :rtype: dict
     """
     results = {}
+    split1_name = 'cDNA' if lamanno else 'spliced'
+    split2_name = 'intron' if lamanno else 'unspliced'
+    split1_func = generate_cdna_fasta if lamanno else generate_spliced_fasta
+    split2_func = generate_intron_fasta if lamanno else generate_unspliced_fasta
     if not os.path.exists(index_path) or overwrite:
         fasta_path = decompress_file(fasta_path, temp_dir=temp_dir)
         sorted_fasta_path = sort_fasta(
@@ -340,31 +350,40 @@ def ref_lamanno(
         sorted_gtf_path = sort_gtf(
             gtf_path, os.path.join(temp_dir, SORTED_GTF_FILENAME)
         )
-        logger.info('Splitting genome into cDNA at {}'.format(cdna_path))
-        cdna_fasta_path = generate_cdna_fasta(
-            sorted_fasta_path, sorted_gtf_path, cdna_path
-        )
-        results.update({'cdna_fasta': cdna_fasta_path})
         logger.info(
-            'Creating cDNA transcripts-to-capture at {}'.format(cdna_t2c_path)
+            'Splitting genome into {} at {}'.format(split1_name, c1_path)
         )
-        cdna_t2c_result = create_t2c(cdna_fasta_path, cdna_t2c_path)
-        results.update({'cdna_t2c': cdna_t2c_result['t2c']})
-        logger.info('Splitting genome into introns at {}'.format(intron_path))
-        intron_fasta_path = generate_intron_fasta(
-            sorted_fasta_path, sorted_gtf_path, intron_path
-        )
-        results.update({'intron_fasta': intron_fasta_path})
+        c1_fasta_path = split1_func(sorted_fasta_path, sorted_gtf_path, c1_path)
+        results.update({'{}_fasta'.format(split1_name).lower(): c1_fasta_path})
         logger.info(
-            'Creating intron transcripts-to-capture at {}'.
-            format(cdna_t2c_path)
+            'Creating {} transcripts-to-capture at {}'.format(
+                split1_name, c1_t2c_path
+            )
         )
-        intron_t2c_result = create_t2c(intron_fasta_path, intron_t2c_path)
-        results.update({'intron_t2c': intron_t2c_result['t2c']})
-        logger.info('Concatenating cDNA and intron FASTAs')
+        c1_t2c_result = create_t2c(c1_fasta_path, c1_t2c_path)
+        results.update({
+            '{}_t2c'.format(split1_name).lower(): c1_t2c_result['t2c']
+        })
+        logger.info(
+            'Splitting genome into {} at {}'.format(split2_name, c2_path)
+        )
+        c2_fasta_path = split2_func(sorted_fasta_path, sorted_gtf_path, c2_path)
+        results.update({'{}_fasta'.format(split2_name).lower(): c2_fasta_path})
+        logger.info(
+            'Creating {} transcripts-to-capture at {}'.format(
+                split2_name, c1_t2c_path
+            )
+        )
+        c2_t2c_result = create_t2c(c2_fasta_path, c2_t2c_path)
+        results.update({
+            '{}_t2c'.format(split2_name).lower(): c2_t2c_result['t2c']
+        })
+        logger.info(
+            'Concatenating {} and {} FASTAs'.format(split1_name, split2_name)
+        )
         combined_path = concatenate_files(
-            cdna_fasta_path,
-            intron_fasta_path,
+            c1_fasta_path,
+            c2_fasta_path,
             out_path=os.path.join(temp_dir, COMBINED_FILENAME),
             temp_dir=temp_dir
         )

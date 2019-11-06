@@ -1179,7 +1179,7 @@ class TestCount(TestMixin, TestCase):
             convert_matrix_to_loom.assert_not_called()
             convert_matrix_to_h5ad.assert_not_called()
 
-    def test_count_lamanno_with_whitelist(self):
+    def test_count_velocity_with_whitelist(self):
         with mock.patch('kb_python.count.stream_fastqs') as stream_fastqs,\
             mock.patch('kb_python.count.kallisto_bus') as kallisto_bus,\
             mock.patch('kb_python.count.bustools_sort') as bustools_sort,\
@@ -1303,7 +1303,7 @@ class TestCount(TestMixin, TestCase):
                         ),
                 }
             },
-                             count.count_lamanno(
+                             count.count_velocity(
                                  self.index_path,
                                  self.t2g_path,
                                  cdna_t2c_path,
@@ -1378,7 +1378,7 @@ class TestCount(TestMixin, TestCase):
             import_matrix_as_anndata.assert_not_called()
             overlay_anndatas.assert_not_called()
 
-    def test_count_lamanno_loom(self):
+    def test_count_velocity_loom(self):
         with mock.patch('kb_python.count.stream_fastqs') as stream_fastqs,\
             mock.patch('kb_python.count.kallisto_bus') as kallisto_bus,\
             mock.patch('kb_python.count.bustools_sort') as bustools_sort,\
@@ -1512,7 +1512,7 @@ class TestCount(TestMixin, TestCase):
                         ),
                 }
             },
-                             count.count_lamanno(
+                             count.count_velocity(
                                  self.index_path,
                                  self.t2g_path,
                                  cdna_t2c_path,
@@ -1611,7 +1611,7 @@ class TestCount(TestMixin, TestCase):
             adata.write_loom.assert_called_once_with(loom_path)
             adata.write.assert_not_called()
 
-    def test_count_lamanno_h5ad(self):
+    def test_count_velocity_h5ad(self):
         with mock.patch('kb_python.count.stream_fastqs') as stream_fastqs,\
             mock.patch('kb_python.count.kallisto_bus') as kallisto_bus,\
             mock.patch('kb_python.count.bustools_sort') as bustools_sort,\
@@ -1745,7 +1745,7 @@ class TestCount(TestMixin, TestCase):
                         ),
                 }
             },
-                             count.count_lamanno(
+                             count.count_velocity(
                                  self.index_path,
                                  self.t2g_path,
                                  cdna_t2c_path,
@@ -1844,7 +1844,7 @@ class TestCount(TestMixin, TestCase):
             adata.write_loom.assert_not_called()
             adata.write.assert_called_once_with(h5ad_path)
 
-    def test_count_lamanno_without_whitelist(self):
+    def test_count_velocity_without_whitelist(self):
         with mock.patch('kb_python.count.stream_fastqs') as stream_fastqs,\
             mock.patch('kb_python.count.kallisto_bus') as kallisto_bus,\
             mock.patch('kb_python.count.bustools_sort') as bustools_sort,\
@@ -1970,7 +1970,7 @@ class TestCount(TestMixin, TestCase):
                         ),
                 }
             },
-                             count.count_lamanno(
+                             count.count_velocity(
                                  self.index_path,
                                  self.t2g_path,
                                  cdna_t2c_path,
