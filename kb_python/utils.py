@@ -210,27 +210,14 @@ def run_executable(
             c[0] = os.path.basename(c[0])
         logger.debug(' '.join(c))
     p = sp.Popen(
-        command,
-        stdin=stdin,
-        stdout=stdout,
-        stderr=stderr,
-        universal_newlines=wait,
-        bufsize=1 if wait else -1,
+        command
     )
 
     # Wait if desired.
     if wait:
         out = []
         while p.poll() is None:
-            if stream and not quiet:
-                for line in p.stdout:
-                    out.append(line.strip())
-                    logger.debug(line.strip())
-                for line in p.stderr:
-                    out.append(line.strip())
-                    logger.debug(line.strip())
-            else:
-                time.sleep(1)
+            time.sleep(1)
 
         if not quiet and p.returncode != returncode:
             logger.error('\n'.join(out))
